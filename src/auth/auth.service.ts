@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { CreateUserDto, LoginUserDto } from './dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
+import { IncomingHttpHeaders } from 'http';
 
 @Injectable()
 export class AuthService {
@@ -53,6 +54,18 @@ export class AuthService {
       ...user,
       token: this.getJwt({ id: user.id })
     };
+  }
+
+  // async checkAuthStatus(user: User, headers: IncomingHttpHeaders) {
+  async checkAuthStatus(user: User) {
+    // const headerToken = headers.authorization;
+    // if (!headerToken || (headerToken && headerToken.split(" ")[0] !== "Bearer") ) throw new BadRequestException(`Invalid token`)
+    // const valid = this.jwtService.verifyAsync(headerToken.split(" ")[1]);
+    // if (!valid) throw new ForbiddenException(`Expired session. Please login again`);
+    return {
+        ...user,
+        token: this.getJwt({ id: user.id })
+      };
   }
 
   private getJwt(payload: JwtPayload) {

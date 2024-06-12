@@ -26,6 +26,16 @@ export class AuthController {
     return this.authService.login(loginUserDro);
   }
 
+  @Get('check-token')
+  @Auth()
+  checkAuthStatus(
+    @GetUser() user: User,
+    // @Headers() headers: IncomingHttpHeaders
+  ){
+    // return this.authService.checkAuthStatus(user, headers);
+    return this.authService.checkAuthStatus(user);
+  }
+
   @Get('private')
   @UseGuards( AuthGuard() )
   testingPrivateRoute(
