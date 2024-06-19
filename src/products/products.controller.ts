@@ -7,11 +7,18 @@ import { Auth } from 'src/auth/decorators/auth.decorator';
 import { ValidRoles } from 'src/auth/interfaces/valid-roles.interface';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { User } from 'src/auth/entities/user.entity';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Product } from './entities/product.entity';
 
+@ApiTags('Products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @ApiResponse({status: 201, description: 'Product created', type: Product})
+  @ApiResponse({status: 404, description: 'Bad request'})
+  @ApiResponse({status: 500, description: 'Unexpected error, check server logs'})
+  @ApiBearerAuth()
   @Post()
   @Auth()
   create(
@@ -31,6 +38,7 @@ export class ProductsController {
     return this.productsService.findOnePlain(term);
   }
 
+  @ApiBearerAuth()
   @Patch(':id')
   @Auth( ValidRoles.admin )
   update(
@@ -41,6 +49,7 @@ export class ProductsController {
     return this.productsService.update(id, updateProductDto, user);
   }
 
+  @ApiBearerAuth()
   @Delete(':id')
   @Auth( ValidRoles.admin )
   remove(@Param('id', ParseUUIDPipe) id: string) {
