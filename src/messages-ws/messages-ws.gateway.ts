@@ -1,24 +1,36 @@
-import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer, WsException } from '@nestjs/websockets';
 import { MessagesWsService } from './messages-ws.service';
 import { Server, Socket } from 'socket.io';
 import { NewMessageDto } from './dtos/new-message.dto';
+import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
 
 @WebSocketGateway({ cors: true })
 export class MessagesWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+
+  private logger = new Logger('MessagesWsGateway');
   
   @WebSocketServer() wss: Server;
 
   constructor(
-    private readonly messagesWsService: MessagesWsService
+    private readonly messagesWsService: MessagesWsService,
+    private readonly jwtService: JwtService
   ) {}
   
-  handleConnection(client: Socket, ...args: any[]) {
-    // console.log('Cliente conectado: ', client.id);
+  async handleConnection(client: Socket, ...args: any[]) {
     const token = client.handshake.headers.authorization as string;
-    console.log(token);
-    
-    this.messagesWsService.registerClient(client);
-    // console.log({conectados: this.messagesWsService.getConnectedClients()});
+    // this.logger.log(`Client id: ${client.id}`);
+    let payload:JwtPayload;
+    try {
+      payload = this.jwtService.verify(token);
+      await this.messagesWsService.registerClient(client, payload.id);
+    } catch (error) {
+      this.logger.error(`WS error: ${error.message}`);
+      client.disconnect();
+      return;
+    }
+    // this.logger.log(payload);
     this.wss.emit('clients-updated', this.messagesWsService.getConnectedClients());
   }
   
@@ -46,7 +58,7 @@ export class MessagesWsGateway implements OnGatewayConnection, OnGatewayDisconne
 
     //! Message from server - Emitir a todos inclusive el cliente que envió el mensaje.
     this.wss.emit('message-from-server', {
-      fullName: payload.id, 
+      fullName: this.messagesWsService.getUserFullName(client.id), 
       message: payload.message
     });
   }
