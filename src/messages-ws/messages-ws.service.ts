@@ -25,6 +25,9 @@ export class MessagesWsService {
         const user = await this.userRepository.findOneBy({ id: userId });
         if(!user) throw new Error('User not found');
         if(!user.isActive) throw new Error('User is not active');
+
+        this.checkUserConnection(user);
+
         this.connectedClients[client.id] = { socket: client, user: user };
     }
 
@@ -38,5 +41,18 @@ export class MessagesWsService {
 
     getUserFullName(socketId:string):string{
         return this.connectedClients[socketId].user.fullName;
+    }
+    /**
+     * Check if the user is already connected and disconnect the previous connection
+     * @param user 
+     */
+    private checkUserConnection( user: User){
+        for(const socketId of Object.keys(this.connectedClients)){
+            const connectedClients = this.connectedClients[socketId];
+            if(connectedClients.user.id === user.id){
+                connectedClients.socket.disconnect();
+                break;
+            }
+        }
     }
 }
